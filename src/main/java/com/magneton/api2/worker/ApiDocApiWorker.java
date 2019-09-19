@@ -9,8 +9,7 @@ import com.magneton.api2.core.fileprocessor.CustomFileProcessor;
 import com.magneton.api2.core.requestmapping.RequestMappingBuilder;
 import com.magneton.api2.core.apiclassdoc.*;
 import com.magneton.api2.core.requestmapping.RequestMappingBuilderChain;
-import com.magneton.api2.core.spi.ApiWorker;
-import com.magneton.api2.core.spi.Spi;
+import com.magneton.api2.core.ApiWorker;
 import com.magneton.api2.core.spi.SpiServices;
 import com.magneton.api2.util.ApiLog;
 import com.sun.javadoc.ClassDoc;
@@ -126,7 +125,7 @@ public class ApiDocApiWorker implements ApiWorker {
             }
         }
         if (title == null) {
-            title = "unknown";
+            title = apiMethod.getSimpleName();
         }
         methodApiDoc.put("title", title);
 

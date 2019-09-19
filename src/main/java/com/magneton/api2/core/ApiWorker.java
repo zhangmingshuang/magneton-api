@@ -1,7 +1,8 @@
-package com.magneton.api2.core.spi;
+package com.magneton.api2.core;
 
 import com.magneton.api2.core.ApiFileGenerater;
 import com.magneton.api2.core.apiclassdoc.Apis;
+import com.magneton.api2.core.spi.Spi;
 
 /**
  * 真正执行JAVADOC解析的实现类

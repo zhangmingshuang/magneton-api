@@ -82,4 +82,5 @@ public class Api {
 
     public static Stoper STOPER;
 
+    public static String REVERSE_PROXY;
 }

@@ -49,6 +49,9 @@ public class BuildCommand {
     @Parameter(names = {"-pfn", "-param-filter-new"},
             description = "强制过滤过滤为参数-pf/-param-filter指定的过滤")
     private boolean paramFilterInNew = false;
+    @Parameter(names = {"-reverse"},
+            description = "指定一个反向代理服务，将根据服务生成对应配置文件。支持nginx")
+    private String reverse;
 
     public static BuildCommand parse(String[] args) {
         long s = System.currentTimeMillis();

@@ -6,10 +6,11 @@ import com.magneton.api2.core.builder.ApiBuilder;
 import com.magneton.api2.core.JavaDocDocletApiBuilder;
 import com.magneton.api2.core.apiclassdoc.Apis;
 import com.magneton.api2.core.FileFiltrationScanner;
+import com.magneton.api2.core.reverseproxy.ApiReverseProxy;
 import com.magneton.api2.core.scan.HFiles;
 import com.magneton.api2.core.scan.Scanner;
 import com.magneton.api2.core.spi.SpiServices;
-import com.magneton.api2.core.spi.ApiWorker;
+import com.magneton.api2.core.ApiWorker;
 import com.magneton.api2.util.ApiLog;
 import org.zeroturnaround.zip.ZipUtil;
 
@@ -66,6 +67,7 @@ public class ApiStater {
     private void doFileGenerater(ApiFileGenerater apiFileGenerater) throws IOException {
         //开始生成
         Path folder = Api.OUTPUT_FOLDER.resolve(apiFileGenerater.getFolder());
+        this.addFileInclude(folder, apiFileGenerater);
         if (!Files.exists(folder)) {
             try (InputStream inputStream
                          = ApiStater.class.getClassLoader().getResourceAsStream(apiFileGenerater.getEnvLib())) {
@@ -83,6 +85,31 @@ public class ApiStater {
                 throw new RuntimeException(e);
             }
         });
+    }
+
+    private void addFileInclude(Path folder, ApiFileGenerater apiFileGenerater) {
+        String reverse = Api.REVERSE_PROXY;
+        if (reverse != null && !reverse.isEmpty()) {
+            String[] infos = reverse.split(":");
+            String name = infos[0];
+            int port = 881;
+            if (infos.length > 1) {
+                try {
+                    port = Integer.parseInt(infos[1]);
+                } catch (Throwable e) {
+                    //Ignore
+                }
+            }
+            ApiReverseProxy apiReverseProxy
+                    = SpiServices.getService(ApiReverseProxy.class, name);
+            if (apiReverseProxy != null) {
+                ApiFile proxyFile = apiReverseProxy
+                        .createApiFile(port, Api.OUTPUT_FOLDER.getFileName().toString(), folder);
+                if (proxyFile != null) {
+                    apiFileGenerater.addApiFile(proxyFile);
+                }
+            }
+        }
     }
 
     private void apiEnvinit(BuildCommand command) {
@@ -109,6 +136,8 @@ public class ApiStater {
                 Api.PARAM_FILTER.add(filter.toLowerCase());
             }
         }
+
+        Api.REVERSE_PROXY = command.getReverse();
 
         Api.STOPER = () -> {
             ApiLog.out("exit 0");
