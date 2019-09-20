@@ -43,6 +43,10 @@ public class ApiStater {
 
         this.apiEnvinit(command);
 
+        if (command.isHelp()) {
+            Api.STOPER.exit();
+        }
+
         //文件扫描
         Scanner scanner = new FileFiltrationScanner();
         scanner.registerFileGarbageCollector(new DefaultFileGarbageCollector());
@@ -170,4 +174,5 @@ public class ApiStater {
         }
         return paths;
     }
+
 }

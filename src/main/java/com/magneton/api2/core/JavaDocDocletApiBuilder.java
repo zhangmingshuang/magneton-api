@@ -9,12 +9,15 @@ import com.magneton.api2.core.scan.HFiles;
 import com.magneton.api2.util.ApiLog;
 import com.magneton.api2.util.JavaHomeUtil;
 import com.sun.javadoc.ClassDoc;
+import com.sun.tools.javac.code.Symbol;
+import com.sun.tools.javadoc.ClassDocImpl;
 import com.sun.tools.javadoc.Main;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.net.JarURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -23,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.jar.JarEntry;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 /**
@@ -41,24 +45,40 @@ public class JavaDocDocletApiBuilder implements ApiBuilder {
 
     @Override
     public Apis build(HFiles hFiles) {
-        List<ClassDoc> classDocs = this.docletBuild(hFiles);
-        if (classDocs == null || classDocs.isEmpty()) {
-            return null;
-        }
-        //因为Doclet会将所有的文件解析，所以，这里需要重新过滤文件
-        Map<String, HFile> primaries = hFiles.getPrimariesMap();
-        List<ClassDoc> availableDocs = new ArrayList<>();
-        for (ClassDoc classDoc : classDocs) {
-            String fileName = classDoc.name();
-            if (!primaries.containsKey(fileName)) {
-                continue;
+        try {
+            List<ClassDoc> classDocs = this.docletBuild(hFiles);
+            if (classDocs == null || classDocs.isEmpty()) {
+                return null;
             }
-            availableDocs.add(classDoc);
+            //因为Doclet会将所有的文件解析，所以，这里需要重新过滤文件
+            Map<String, HFile> primaries = hFiles.getPrimariesMap();
+            List<ClassDoc> availableDocs = new ArrayList<>();
+            Field tsym = ClassDocImpl.class.getDeclaredField("tsym");
+            tsym.setAccessible(true);
+            for (ClassDoc classDoc : classDocs) {
+                String fileName = classDoc.name();
+                HFile file = primaries.get(fileName);
+                if (file == null) {
+                    continue;
+                }
+                Symbol.ClassSymbol classSymbol = (Symbol.ClassSymbol) tsym.get(classDoc);
+                if (classSymbol == null
+                        || classSymbol.sourcefile == null) {
+                    continue;
+                }
+                Matcher matcher = Api.SCAN_FILE_FILTER.matcher(classSymbol.sourcefile.toString());
+                if (!matcher.find()) {
+                    continue;
+                }
+                availableDocs.add(classDoc);
+            }
+            ApiLog.out("doing builder. api classdoc file number in " + classDocs.size());
+            ApiClassDocParser apiClassDocParser = new ApiClassDocParser();
+            apiClassDocParser.setParamFilter(Api.PARAM_FILTER);
+            return apiClassDocParser.parse(availableDocs);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
-        ApiLog.out("doing builder. api classdoc file number in " + classDocs.size());
-        ApiClassDocParser apiClassDocParser = new ApiClassDocParser();
-        apiClassDocParser.setParamFilter(Api.PARAM_FILTER);
-        return apiClassDocParser.parse(availableDocs);
     }
 
     private List<ClassDoc> docletBuild(HFiles hFiles) {
@@ -72,6 +92,7 @@ public class JavaDocDocletApiBuilder implements ApiBuilder {
                 "-extdirs", JAR_DEPENDENCY_PATH.toString() + ";" + RT_JAR.getParent(),
                 "-sourcepath", ""
         };
+        //系统上扫描的文件可能存在不同目录但是相同命名的情况
         List<HFile> primaries = hFiles.getPrimaries();
         if (primaries.size() < 1) {
             ApiLog.error("not file exists.");
@@ -81,12 +102,23 @@ public class JavaDocDocletApiBuilder implements ApiBuilder {
         for (String configArg : configArgs) {
             javaDocArgs.add(configArg);
         }
-        primaries.forEach(hFile -> javaDocArgs.add(hFile.getPath().toAbsolutePath().toString()));
+        Set<String> primaryFiles = new HashSet<>();
+        primaries.forEach(hFile -> {
+            String file = hFile.getPath().toAbsolutePath().toString();
+            primaryFiles.add(file);
+            javaDocArgs.add(file);
+        });
 
         List<HFile> subordinates = hFiles.getSubordinates();
         if (subordinates.size() > 0) {
             javaDocArgs.add("-bootclasspath");
-            subordinates.forEach(hFile -> javaDocArgs.add(hFile.getPath().toAbsolutePath().toString()));
+            subordinates.forEach(hFile -> {
+                String file = hFile.getPath().toAbsolutePath().toString();
+                if (primaryFiles.contains(file)) {
+                    return;
+                }
+                javaDocArgs.add(file);
+            });
         }
 
         String[] args = new String[javaDocArgs.size()];

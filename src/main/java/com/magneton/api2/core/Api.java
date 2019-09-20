@@ -20,6 +20,7 @@ public class Api {
         throw new RuntimeException("deny");
     }
 
+    public static final String FILE_SEPARATOR = System.getProperty("file.separator");
     /**
      * 运行时目录
      */

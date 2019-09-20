@@ -60,13 +60,17 @@ public class BuildCommand {
             if (args == null || args.length < 1) {
                 return command;
             }
-            JCommander.newBuilder()
+            JCommander commander = JCommander.newBuilder()
                     .addObject(command)
-                    .build()
-                    .parse(args);
+                    .build();
+            commander.parse(args);
+            if (command.isHelp()) {
+                commander.usage();
+            }
             return command;
         } finally {
             ApiLog.out("parse command in " + (System.currentTimeMillis() - s) + "ms");
         }
     }
+
 }

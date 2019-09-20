@@ -58,12 +58,12 @@ public abstract class AbstractFileScanner implements Scanner {
             Files.walkFileTree(folderPath, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path filePath, BasicFileAttributes attrs) throws IOException {
-                    String fileName = filePath.getFileName().toString();
-                    Matcher matcher = pattern.matcher(fileName);
+                    Matcher matcher = pattern.matcher(filePath.toString());
                     if (!matcher.find()) {
                         AbstractFileScanner.this.doGarbageCollector(filePath);
                         return FileVisitResult.CONTINUE;
                     }
+                    String fileName = filePath.getFileName().toString();
                     HFile file = new HFile();
                     file.setFileName(fileName);
                     int pointIndex = fileName.lastIndexOf(".");
