@@ -154,6 +154,8 @@ public class ApiClassDocParser {
         String paramName = paramTag.parameterName();
         List<JCTree.JCVariableDecl> methodArgs = this.getMethodArgs((MethodDoc) paramTag.holder());
 
+        //方法参数中对象关联属性
+        //作用条件：@param name 注释中，存在注释@link.并且link的对象类型与param中的类型一致
         List<ApiField> link = null;
         String typeName = null;
 
@@ -176,9 +178,14 @@ public class ApiClassDocParser {
                 }
                 //解析对象
                 ClassDoc linkClass = ((SeeTag) paramInlineTag).referencedClass();
-                if (linkClass != null) {
-                    link = this.parseClassApiField(linkClass);
+                if (linkClass == null) {
+                    continue;
                 }
+                String type = linkClass.typeName();
+                if (!typeName.equals(type)) {
+                    continue;
+                }
+                link = this.parseClassApiField(linkClass);
                 break args;
             }
         }
@@ -237,144 +244,6 @@ public class ApiClassDocParser {
         return apiFields;
     }
 
-//    protected List<ApiMethod> parseApiMethod(ClassDoc classDoc) {
-//        MethodDoc[] methodDocs = classDoc.methods();
-//        List<ApiMethod> apiMethods = new ArrayList<>(methodDocs.length);
-//        for (MethodDoc methodDoc : methodDocs) {
-//            ApiMethod apiMethod = new ApiMethod();
-//            apiMethod.setMethodDoc(methodDoc);
-//            apiMethod.setSimpleName(methodDoc.name());
-//            apiMethod.setQualifiedTypeName(methodDoc.qualifiedName());
-//
-//            //注释下的Tag
-//            Tag[] tags = methodDoc.tags();
-//            //所有的注释，包括Tag信息
-//            Tag[] inlineTags = methodDoc.inlineTags();
-//            List<ApiComment> apiComments = parseApiComments(inlineTags);
-//            apiMethod.setApiComments(apiComments);
-//
-//            Parameter[] parameters = methodDoc.parameters();
-//
-//            Tag returnTag = null;
-//            List<ApiSee> apiSees = new ArrayList<>();
-//            List<ApiField> apiFields = new ArrayList<>();
-//            for (Tag tag : tags) {
-//                if (ApiTagUtil.isSee(tag)) {
-//                    ApiSee apiSee = ApiSee.create((SeeTag) tag);
-//                    apiSees.add(apiSee);
-//                    continue;
-//                }
-//                if (ApiTagUtil.isReturn(tag)) {
-//                    returnTag = tag;
-//                    continue;
-//                }
-//                if (ApiTagUtil.isSince(tag)) {
-//                    apiMethod.setSince(tag.text());
-//                }
-//                if (ApiTagUtil.isParam(tag)) {
-//                    ParamTag paramTag = (ParamTag) tag;
-//                    String parameterName = paramTag.parameterName();
-//                    boolean next = false;
-//                    for (Parameter parameter : parameters) {
-//                        if (parameter.name().equalsIgnoreCase(parameterName)) {
-//                            next = true;
-//                            break;
-//                        }
-//                    }
-//                    if (!next) {
-//                        continue;
-//                    }
-//                    apiFields.add(parseField(paramTag));
-//                    continue;
-//                }
-//            }
-//            apiMethod.setApiSees(apiSees);
-//            apiMethod.setApiFields(apiFields);
-//
-//            ReturnTypeEnum returnType = parseReturnType(methodDoc);
-//            apiMethod.setReturnType(returnType);
-//            apiMethod.setReturnTag(returnTag);
-//            if (returnTag != null) {
-//                //解析返回参数
-//                Tag[] returnTags = returnTag.inlineTags();
-//                List<ApiComment> apiReturnComments = parseApiComments(returnTags);
-//                apiMethod.setApiReturnComments(apiReturnComments);
-//
-//                ClassDoc expendClass = null;
-//                for (Tag tag : returnTags) {
-//                    if (expendClass != null) {
-//                        break;
-//                    }
-//                    if (tag.text().indexOf("\n") != -1) {
-//                        //return的link必须与return保持在同一行才能作用，并且只作用一次
-//                        break;
-//                    }
-//                    if (!ApiTagUtil.isSee(tag)) {
-//                        continue;
-//                    }
-//                    expendClass = ((SeeTag) tag).referencedClass();
-//                }
-//                if (expendClass != null) {
-//                    //解析字段列表
-//                    List<ApiLinkIncludeField> linkIncludeFields = new ArrayList<>();
-//                    FieldDoc[] expendFields = expendClass.fields();
-//                    if (expendFields != null) {
-//                        for (FieldDoc expendField : expendFields) {
-//                            ApiLinkIncludeField linkIncludeField = new ApiLinkIncludeField();
-//                            linkIncludeField.setName(expendField.name());
-//                            linkIncludeField.setComment(parseApiComments(expendField.inlineTags()));
-//                            linkIncludeField.setType(expendField.type().toString());
-//                            linkIncludeFields.add(linkIncludeField);
-//                        }
-//                    }
-//                    apiMethod.setReturnApiLinkIncludeFields(linkIncludeFields);
-//                }
-//            }
-//            apiMethods.add(apiMethod);
-//        }
-//        return apiMethods;
-//    }
-
-//    protected ApiField parseField(ParamTag paramTag) {
-//        Tag[] paramInlineTags = paramTag.inlineTags();
-//        List<ApiComment> paramApiComment = parseApiComments(paramInlineTags);
-//        String type = parseFieldType(paramTag.parameterName(), paramTag.holder());
-//        ApiField field = new ApiField();
-////        field.setPrimary(type.startsWith("java.lang"));
-//
-//        ClassDoc expendClass = null;
-////        if (!field.isPrimary()) {
-////            for (Tag tag : paramInlineTags) {
-////                if (!ApiTagUtil.isSee(tag)) {
-////                    continue;
-////                }
-////                if (((SeeTag) tag).referencedClassName().equals(type)) {
-////                    expendClass = ((SeeTag) tag).referencedClass();
-////                    break;
-////                }
-////            }
-////        }
-////        if (expendClass != null) {
-////            //解析字段列表
-////            List<ApiLinkIncludeField> linkIncludeFields = new ArrayList<>();
-////            FieldDoc[] expendFields = expendClass.fields();
-////            if (expendFields != null) {
-////                for (FieldDoc expendField : expendFields) {
-////                    ApiLinkIncludeField linkIncludeField = new ApiLinkIncludeField();
-////                    linkIncludeField.setName(expendField.name());
-////                    linkIncludeField.setComment(parseApiComments(expendField.inlineTags()));
-////                    linkIncludeField.setType(expendField.type().toString());
-////                    linkIncludeFields.add(linkIncludeField);
-////                }
-////            }
-////            field.setApiLinkIncludeFields(linkIncludeFields);
-////        }
-//        field.setTag(paramTag);
-//        field.setType(type);
-//        field.setName(paramTag.parameterName());
-//        field.setComment(paramApiComment);
-//        return field;
-//    }
 
     protected String parseFieldType(String fieldName, Doc holder) {
         try {
@@ -409,19 +278,6 @@ public class ApiClassDocParser {
         }
         return "unknown";
     }
-
-//    protected ReturnTypeEnum getTypeName(String name) {
-//        switch (name) {
-//            case "void":
-//                return ReturnTypeEnum.Void;
-//            case "list":
-//            case "arraylist":
-//            case "linkedList":
-//                return ReturnTypeEnum.List;
-//            default:
-//                return ReturnTypeEnum.Bean;
-//        }
-//    }
 
     protected ApiClass parseApiClass(ClassDoc classDoc) {
         ApiClass clazz = new ApiClass();

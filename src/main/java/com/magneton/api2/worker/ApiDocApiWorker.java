@@ -11,8 +11,10 @@ import com.magneton.api2.core.apiclassdoc.*;
 import com.magneton.api2.core.requestmapping.RequestMappingBuilderChain;
 import com.magneton.api2.core.ApiWorker;
 import com.magneton.api2.core.spi.SpiServices;
+import com.magneton.api2.core.spring.RequestMapping;
 import com.magneton.api2.util.ApiLog;
 import com.sun.javadoc.ClassDoc;
+import com.sun.javadoc.MethodDoc;
 import com.sun.tools.javadoc.MethodDocImpl;
 
 import java.text.SimpleDateFormat;
@@ -91,15 +93,30 @@ public class ApiDocApiWorker implements ApiWorker {
         ClassDoc classDoc = apiClass.getClassDoc();
         RequestMappingBuilder requestMappingBuilder
                 = RequestMappingBuilderChain.getWithAnnotation(classDoc);
+
         String requestMapping, requestType;
+
         if (requestMappingBuilder == null) {
             requestMapping = "unkown";
-            requestType = "unkown";
             ApiLog.error("unkown request mapping builder. name : " + apiClass.getQualifiedTypeName());
         } else {
             requestMapping = requestMappingBuilder.getRequestMapping(classDoc);
-            requestType = requestMappingBuilder.getRequestMethod(classDoc);
         }
+
+        MethodDoc methodDoc = apiMethod.getMethodDoc();
+
+        RequestMappingBuilder methodRequestMapingBuilder
+                = RequestMappingBuilderChain.getWithAnnotation(methodDoc);
+
+        if (methodRequestMapingBuilder == null) {
+            requestType = "unkown";
+            requestMapping += "/unkown";
+            ApiLog.error("unkown request mapping builder. name : " + apiMethod.getQualifiedTypeName());
+        } else {
+            requestType = requestMappingBuilder.getRequestMethod(methodDoc);
+            requestMapping += requestMappingBuilder.getRequestMapping(methodDoc);
+        }
+
         methodApiDoc.put("type", requestType);
         methodApiDoc.put("url", requestMapping);
 
