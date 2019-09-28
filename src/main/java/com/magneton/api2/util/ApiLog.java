@@ -1,6 +1,6 @@
 package com.magneton.api2.util;
 
-import com.magneton.api2.core.Api;
+import com.magneton.api2.core.ApiConstant;
 
 import java.io.UnsupportedEncodingException;
 
@@ -27,10 +27,6 @@ public class ApiLog {
     }
 
     private static void println(String info) {
-        try {
-            System.out.println(new String(info.getBytes(Api.INPUT_CHARSET), Api.OUTPUT_CHARSET));
-        } catch (UnsupportedEncodingException e) {
-
-        }
+        System.out.println(info);
     }
 }

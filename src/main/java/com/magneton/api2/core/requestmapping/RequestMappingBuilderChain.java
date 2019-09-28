@@ -1,6 +1,6 @@
 package com.magneton.api2.core.requestmapping;
 
-import com.magneton.api2.core.spi.SpiServices;
+import com.magneton.api2.spi.SpiServices;
 import com.sun.javadoc.AnnotationDesc;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.MethodDoc;

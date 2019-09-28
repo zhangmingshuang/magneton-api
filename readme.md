@@ -40,3 +40,12 @@ java -jar magneton-api.jar -oc utf-8 -se ${project}
       }
       ```
 
+##Bug
+- 跨模块配置的api.md会多次注入
+- ${project}是以user.dir获取的。但是不会获取到运行目录。
+`java -jar ../../magneton-api.jar \
+ -s "${project}/src" \
+ -oc utf-8 -se "${project}/../../" \
+ -f ".*com\\\\sgcc\\\\wx\\\\inletting\\\\controller\\\\api.*Controller.java" \
+ -e "com.sgcc.wx.common.error.ErrorCode"
+`
