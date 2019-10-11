@@ -10,7 +10,7 @@ import lombok.Setter;
  */
 @Setter
 @Getter
-public class ApiSeeDoc implements ApiDoc {
+public class ApiSeeDoc extends ApiDoc {
 
     private String text;
 

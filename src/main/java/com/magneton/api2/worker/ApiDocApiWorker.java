@@ -13,10 +13,12 @@ import com.magneton.api2.builder.doc.*;
 import com.magneton.api2.core.requestmapping.RequestMappingBuilderChain;
 import com.magneton.api2.core.ApiWorker;
 import com.magneton.api2.scanner.FileCollector;
+import com.magneton.api2.util.ApiLog;
 import com.magneton.service.core.util.StringUtil;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.Tag;
+import com.sun.tools.javadoc.ClassDocImpl;
 import com.sun.tools.javadoc.MethodDocImpl;
 
 import java.text.SimpleDateFormat;
@@ -60,12 +62,13 @@ public class ApiDocApiWorker implements ApiWorker {
         apiFileGenerater.setEnvLib("template-apidoc.zip");
         apiFileGenerater.setFolder("api-doc");
 
-        String apiData = this.parseApiData(apis);
+        HashSet apiDocOrders = new LinkedHashSet();
+        String apiData = this.parseApiData(apis, apiDocOrders);
         ApiFile apiDataFile = new ApiFile();
         apiDataFile.setFileName("api_data.js");
         apiDataFile.setContent(apiData);
 
-        String apiProject = this.parseApiProject(apis);
+        String apiProject = this.parseApiProject(apis, apiDocOrders);
         ApiFile apiProjectFile = new ApiFile();
         apiProjectFile.setFileName("api_project.js");
         apiProjectFile.setContent(apiProject);
@@ -74,7 +77,7 @@ public class ApiDocApiWorker implements ApiWorker {
         return apiFileGenerater;
     }
 
-    private String parseApiProject(Apis apis) {
+    private String parseApiProject(Apis apis, Collection apiDocOrders) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String now = sdf.format(new Date());
 
@@ -101,6 +104,9 @@ public class ApiDocApiWorker implements ApiWorker {
             project.put("header", header);
         }
 
+        if (apiDocOrders != null && apiDocOrders.size() > 0) {
+            project.put("order", apiDocOrders);
+        }
         return "define(" + project.toJSONString() + ");";
     }
 
@@ -114,12 +120,14 @@ public class ApiDocApiWorker implements ApiWorker {
         RequestMappingBuilder requestMappingBuilder
             = RequestMappingBuilderChain.getWithAnnotation(classDoc);
 
-        String requestMapping, requestType;
+        String[] requestMappings;
+        String url = "";
+        String requestType;
 
         if (requestMappingBuilder == null) {
             return null;
         } else {
-            requestMapping = requestMappingBuilder.getRequestMapping(classDoc);
+            requestMappings = requestMappingBuilder.getRequestMapping(classDoc);
         }
 
         MethodDoc methodDoc = apiMethodDoc.getMethodDoc();
@@ -134,12 +142,23 @@ public class ApiDocApiWorker implements ApiWorker {
         if (methodRequestMapingBuilder == null) {
             return null;
         } else {
+            if (requestMappings.length > 1) {
+                url = Arrays.toString(requestMappings);
+            } else {
+                url = requestMappings[0];
+            }
+
             requestType = requestMappingBuilder.getRequestMethod(methodDoc);
-            requestMapping += requestMappingBuilder.getRequestMapping(methodDoc);
+            String[] methodRequestMappings = requestMappingBuilder.getRequestMapping(methodDoc);
+            if (methodRequestMappings.length > 1) {
+                url += Arrays.toString(methodRequestMappings);
+            } else {
+                url += methodRequestMappings[0];
+            }
         }
 
         methodApiDoc.put("type", requestType);
-        methodApiDoc.put("url", requestMapping);
+        methodApiDoc.put("url", url);
 
         //标题以注解中的第一行文本为标题
         String title = null;
@@ -180,6 +199,10 @@ public class ApiDocApiWorker implements ApiWorker {
         if (version == null || version.isEmpty()) {
             return "0.0.0";
         }
+        if (version.indexOf(".") == -1) {
+            ApiLog.error("error api " + version + " to api-doc. set default version.");
+            return "0.0.0";
+        }
         return version;
     }
 
@@ -195,10 +218,10 @@ public class ApiDocApiWorker implements ApiWorker {
                 int methodIndex = href.indexOf("#");
                 if (href.startsWith("http")) {
                     builder.append("<a href='")
-                        .append(href)
-                        .append("'")
-                        .append(href)
-                        .append(" target='_blank'>");
+                           .append(href)
+                           .append("'")
+                           .append(href)
+                           .append(" target='_blank'>");
                 } else {
                     builder.append("<a href='");
                     if (methodIndex == -1) {
@@ -209,8 +232,16 @@ public class ApiDocApiWorker implements ApiWorker {
                         String controller, method;
                         if (href.startsWith("#")) {
                             //没有控制器
-                            controller = ((MethodDocImpl) (apiComment.getTag().holder()))
-                                .containingClass().name();
+                            if (ClassDocImpl.class.isAssignableFrom(apiComment.getTag().holder().getClass())) {
+                                ClassDoc classDoc = ((ClassDocImpl) (apiComment.getTag().holder())).containingClass();
+                                if (classDoc == null) {
+                                    controller = "#";
+                                } else {
+                                    controller = classDoc.name();
+                                }
+                            } else {
+                                controller = "#";
+                            }
                             method = href.substring(1);
                         } else {
                             controller = href.substring(0, methodIndex);
@@ -221,7 +252,7 @@ public class ApiDocApiWorker implements ApiWorker {
                             }
                         }
                         builder.append("#api-").append(controller).append("'>")
-                            .append(controller).append("</a>#<a href='");
+                               .append(controller).append("</a>#<a href='");
 
                         builder.append("#api-" + controller + "-" + method);
                         builder.append("'>").append(method).append("</a>");
@@ -234,8 +265,17 @@ public class ApiDocApiWorker implements ApiWorker {
         return builder.toString();
     }
 
-    private String parseApiData(Apis apis) {
-        JSONArray api = new JSONArray();
+    private String parseApiData(Apis apis, Collection apiDocOrders) {
+        JSONArray apiDocs = new JSONArray();
+
+        //APIDOC预期读取全局错误描述码
+        JSONObject errorCodeMethod =
+            this.parseApiErrorCode(this.apiDocCommander.getErrorClass());
+        if (errorCodeMethod != null) {
+            apiDocOrders.add(errorCodeMethod.get("group"));
+            apiDocs.add(errorCodeMethod);
+        }
+
         List<ApiClassDoc> apiClasses = apis.getApiClasses();
         for (ApiClassDoc apiClass : apiClasses) {
             List<ApiMethodDoc> apiMethodDocs = apiClass.getApiMethodDocs();
@@ -257,17 +297,72 @@ public class ApiDocApiWorker implements ApiWorker {
                 if (success != null) {
                     method.put("success", success);
                 }
-                api.add(method);
+                apiDocs.add(method);
+                apiDocOrders.add(method.get("group"));
             }
         }
-        //APIDOC预期读取全局错误描述码
-        JSONObject errorCodeMethod =
-            this.parseApiErrorCode(this.apiDocCommander.getErrorClass());
-        if (errorCodeMethod != null) {
-            api.add(errorCodeMethod);
+        //所有的引用，生成See
+        JSONArray vos = this.parseApiVo(apis.getApiSessClasses());
+        if (vos != null && vos.size() > 0) {
+            for (int i = 0; i < vos.size(); i++) {
+                JSONObject vo = vos.getJSONObject(i);
+                apiDocOrders.add(vo.get("group"));
+            }
+            apiDocs.addAll(vos);
+        }
+        return "define({\"api\": " + apiDocs.toJSONString() + "})";
+    }
+
+    private JSONArray parseApiVo(List<ApiClassDoc> apiSessClasses) {
+        if (apiSessClasses == null || apiSessClasses.size() < 1) {
+            return null;
+        }
+        JSONArray vos = new JSONArray();
+        for (ApiClassDoc apiClassDoc : apiSessClasses) {
+            ClassDoc classDoc = apiClassDoc.getClassDoc();
+            String name = apiClassDoc.getSimpleName();
+            List<ApiFieldDoc> apiFieldDocs = ApiFieldDoc.parseApiFields(classDoc);
+
+            JSONObject methodApiDoc = new JSONObject();
+            methodApiDoc.put("group", name);
+            methodApiDoc.put("groupTitle", name);
+            methodApiDoc.put("type", name);
+            methodApiDoc.put("url", apiClassDoc.getQualifiedTypeName());
+            methodApiDoc.put("title", name);
+            methodApiDoc.put("name", apiClassDoc.getQualifiedTypeName());
+            methodApiDoc.put("version", getVersion(apiClassDoc.getVersion()));
+            methodApiDoc.put("filename", "");
+
+            JSONArray parameters = new JSONArray();
+
+            if (apiFieldDocs != null) {
+                for (ApiFieldDoc apiFieldDoc : apiFieldDocs) {
+                    String value = apiFieldDoc.getFieldDoc().constantValueExpression();
+                    JSONObject param = new JSONObject();
+                    param.put("group", "Parameter");
+                    param.put("type", "");
+                    if (value != null) {
+                        param.put("field", apiFieldDoc.getName() + " = " + value);
+                    } else {
+                        param.put("field", apiFieldDoc.getName());
+                    }
+                    param.put("description",
+                        this.parseApiDocComment(
+                            ApiComment.parseApiComments(apiFieldDoc.getFieldDoc().inlineTags())));
+                    parameters.add(param);
+                }
+            }
+            JSONObject parameter = new JSONObject();
+            JSONObject fields = new JSONObject();
+            fields.put("Paramter", parameters);
+            parameter.put("fields", fields);
+
+            methodApiDoc.put("parameter", parameter);
+
+            vos.add(methodApiDoc);
         }
 
-        return "define({\"api\": " + api.toJSONString() + "})";
+        return vos;
     }
 
     private JSONObject parseApiErrorCode(String errorClass) {
@@ -301,7 +396,7 @@ public class ApiDocApiWorker implements ApiWorker {
                 param.put("type", "");
                 param.put("field",
                     apiFieldDoc.getName() + " = " + apiFieldDoc.getFieldDoc()
-                        .constantValueExpression());
+                                                               .constantValueExpression());
                 param.put("description",
                     this.parseApiDocComment(
                         ApiComment.parseApiComments(apiFieldDoc.getFieldDoc().inlineTags())));
@@ -325,9 +420,9 @@ public class ApiDocApiWorker implements ApiWorker {
         }
         String group = apiReturnDoc.getTypeName();
         JSONArray parameters = new JSONArray();
-        List<ApiFieldDoc> link = apiReturnDoc.getLink();
-        if (link != null && link.size() > 0) {
-            for (ApiFieldDoc apiFieldDoc : link) {
+        List<ApiFieldDoc> links = apiReturnDoc.getLinks();
+        if (links != null && links.size() > 0) {
+            for (ApiFieldDoc apiFieldDoc : links) {
                 JSONObject param = new JSONObject();
                 param.put("group", group);
                 param.put("type", apiFieldDoc.getTypeName());
@@ -360,7 +455,7 @@ public class ApiDocApiWorker implements ApiWorker {
         }
         JSONArray parameters = new JSONArray();
         for (ApiParamDoc apiParamDoc : apiParamDocs) {
-            List<ApiFieldDoc> link = apiParamDoc.getLink();
+            List<ApiFieldDoc> link = apiParamDoc.getLinks();
             if (link != null && link.size() > 0) {
                 for (ApiFieldDoc apiFieldDoc : link) {
                     JSONObject param = new JSONObject();

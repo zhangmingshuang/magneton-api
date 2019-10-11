@@ -4,6 +4,7 @@ import com.magneton.api2.util.ApiLog;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.ParamTag;
+import com.sun.javadoc.SeeTag;
 import com.sun.javadoc.Tag;
 import com.sun.javadoc.ThrowsTag;
 import com.sun.tools.javac.tree.JCTree;
@@ -28,7 +29,7 @@ import java.util.List;
 @Setter
 @Getter
 @ToString
-public class ApiMethodDoc implements ApiDoc {
+public class ApiMethodDoc extends ApiSeeCollectorDoc {
 
     /**
      * 对应解析JavaDoc的MethodDoc
@@ -42,10 +43,6 @@ public class ApiMethodDoc implements ApiDoc {
      * 方法全名称，包括类名
      */
     private String qualifiedTypeName;
-//    /**
-//     * 方法注释中的@see链接
-//     */
-//    private List<ApiSee> apiSees;
     /**
      * 方法注释中的@since值
      */
@@ -64,6 +61,7 @@ public class ApiMethodDoc implements ApiDoc {
     private List<ApiExceptionDoc> apiExceptionDocs;
 
     private ApiReturnDoc apiReturnDoc;
+
 
     public static List<JCVariableDecl> getMethodArgs(MethodDoc methodDoc) {
         try {
@@ -104,28 +102,34 @@ public class ApiMethodDoc implements ApiDoc {
                 apiMethodDoc.setQualifiedTypeName(methodDoc.qualifiedName());
                 //注释下的Tag
                 Tag[] tags = methodDoc.tags();
+                apiMethodDoc.seeCollector(tags);
+
                 //所有的注释，包括Tag信息
                 Tag[] inlineTags = methodDoc.inlineTags();
                 List<ApiComment> apiComments = ApiComment.parseApiComments(inlineTags);
                 apiMethodDoc.setApiComments(apiComments);
                 for (Tag tag : tags) {
-                    TagType tagType = TagType.getTag(tag.kind());
-                    ApiMethodDoc.apiMethodStriving(apiMethodDoc, tagType, tag);
+                    ApiMethodDoc.apiMethodStriving(apiMethodDoc, tag);
                 }
                 apiMethodDocs.add(apiMethodDoc);
             } catch (Throwable e) {
                 ApiLog.error(
                     "error parse class " + classDoc.qualifiedTypeName() + ", method " + methodDoc
                         .qualifiedName());
-                e.printStackTrace();
                 throw new RuntimeException(e);
             }
         }
         return apiMethodDocs;
     }
 
-    private static void apiMethodStriving(
-        ApiMethodDoc apiMethodDoc, TagType tagType, Tag tag) {
+    private static void apiMethodStriving(ApiMethodDoc apiMethodDoc, Tag tag) {
+        if (tag == null) {
+            return;
+        }
+        TagType tagType = TagType.getTag(tag.kind());
+        if (tagType == null) {
+            return;
+        }
         //标准JAVADOC方法注释包括
         //@param 参数名 描述
         //@return 描述
@@ -136,16 +140,24 @@ public class ApiMethodDoc implements ApiDoc {
         //@link 链接
         switch (tagType) {
             case Param:
-                ApiParamDoc apiParamDoc = ApiParamDoc.parseApiMethodParam(apiMethodDoc,
-                    (ParamTag) tag);
+                ApiParamDoc apiParamDoc
+                    = ApiParamDoc.parseApiMethodParam(apiMethodDoc, (ParamTag) tag);
                 if (apiParamDoc != null) {
                     apiMethodDoc.addApiParam(apiParamDoc);
+                    List<SeeTag> sees = apiParamDoc.getSees();
+                    if (sees != null && sees.size() > 0) {
+                        apiMethodDoc.addSees(sees);
+                    }
                 }
                 break;
             case Return:
                 ApiReturnDoc apiReturnDoc = ApiReturnDoc.parseApiReturn(apiMethodDoc, tag);
                 if (apiReturnDoc != null) {
                     apiMethodDoc.setApiReturnDoc(apiReturnDoc);
+                    List<SeeTag> sees = apiReturnDoc.getSees();
+                    if (sees != null && sees.size() > 0) {
+                        apiMethodDoc.addSees(sees);
+                    }
                 }
                 break;
             case Throws:
@@ -159,12 +171,18 @@ public class ApiMethodDoc implements ApiDoc {
                 apiMethodDoc.setDeprecated(true);
                 break;
             case See:
+                final SeeTag seeTag = (SeeTag) tag;
+                ClassDoc classDoc = seeTag.referencedClass();
+                if (classDoc != null) {
+                    apiMethodDoc.addSee(seeTag);
+                }
                 break;
             case Since:
                 apiMethodDoc.setSince(tag.text());
                 break;
         }
     }
+
 
     public static String parseMethodReturnType(MethodDoc methodDoc) {
         try {

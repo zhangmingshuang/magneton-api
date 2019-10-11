@@ -15,7 +15,9 @@ import com.magneton.api2.scanner.HFiles;
 import com.magneton.api2.scanner.Scanner;
 import com.magneton.api2.util.ApiLog;
 import com.magneton.service.core.util.StringUtil;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -82,7 +84,7 @@ public class ApiBootstrap {
         ApiFileGenerater apiFileGenerater = apiWorker.createGenerateFiles(apis);
         try {
             this.doFileGenerater(commonApiCommander.getOutputFolder(), apiFileGenerater,
-                commonApiCommander.getOutputCharset());
+                commonApiCommander.getOutputCharset(), commonApiCommander.isEnv());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -127,17 +129,32 @@ public class ApiBootstrap {
     }
 
     private void doFileGenerater(String outputFolder, ApiFileGenerater apiFileGenerater,
-        String outputCharset) throws IOException {
+                                 String outputCharset, boolean forceEnv) throws IOException {
         //开始生成
         Path folder = Paths.get(outputFolder, apiFileGenerater.getFolder());
-        if (!Files.exists(folder)) {
-            try (InputStream inputStream = ApiBootstrap.class.getClassLoader()
-                .getResourceAsStream(apiFileGenerater.getEnvLib())) {
+        if (!Files.exists(folder) || forceEnv) {
+            try (InputStream inputStream
+                = ApiBootstrap.class.getClassLoader().getResourceAsStream(apiFileGenerater.getEnvLib())) {
                 if (inputStream == null) {
                     throw new FileNotFoundException("无法找到" + apiFileGenerater.getEnvLib());
                 }
-                Files.createDirectories(folder);
-                ZipUtil.unpack(inputStream, folder.toFile());
+                if (!Files.exists(folder)) {
+                    Files.createDirectories(folder);
+                }
+                if (!Files.isWritable(folder)) {
+                    ApiLog.error("folder：" + folder + " not writable.");
+                    return;
+                }
+                File file = folder.toFile();
+                if (!file.canWrite()) {
+                    ApiLog.error("folder：" + folder + " not writable.");
+                    return;
+                }
+                try {
+                    ZipUtil.unpack(inputStream, file);
+                } catch (Throwable e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
         apiFileGenerater.getApiFiles().forEach(file -> {

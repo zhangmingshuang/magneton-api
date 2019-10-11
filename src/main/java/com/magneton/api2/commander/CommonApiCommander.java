@@ -52,4 +52,7 @@ public class CommonApiCommander implements ApiCommander {
 
     @Parameter(names = {"-o", "-output"}, description = "API文档输出目录")
     private String outputFolder = System.getProperty("user.dir");
+
+    @Parameter(names = {"-env"}, description = "强制刷新API生成目录文档")
+    private boolean env;
 }

@@ -17,10 +17,7 @@ import java.util.List;
 @ToString
 public class Apis {
 
-    /**
-     * 错误码列表
-     */
-    private List<ApiFieldDoc> errorCodes;
+    private List<ApiClassDoc> apiSessClasses;
     private List<ApiClassDoc> apiClasses;
 
     public boolean isEmpty() {

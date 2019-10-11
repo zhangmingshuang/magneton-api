@@ -1,6 +1,7 @@
 package com.magneton.api2.builder.doc;
 
 import com.sun.javadoc.ClassDoc;
+import com.sun.javadoc.SeeTag;
 import com.sun.javadoc.Tag;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,7 +18,7 @@ import java.util.List;
 @Setter
 @Getter
 @ToString
-public class ApiClassDoc implements ApiDoc {
+public class ApiClassDoc extends ApiSeeCollectorDoc {
 
     /**
      * 对应解析JavaDoc的ClassDoc
@@ -51,15 +52,10 @@ public class ApiClassDoc implements ApiDoc {
      * 类中的方法
      */
     private List<ApiMethodDoc> apiMethodDocs;
-//    /**
-//     * 类注释中的@see链接
-//     */
-//    private List<ApiSee> apiSees;
     /**
      * 类注释中的@Deprecated
      */
     private boolean deprecated;
-
 
     public static ApiClassDoc parseApiClass(ClassDoc classDoc) {
         ApiClassDoc apiClass = new ApiClassDoc();
@@ -68,18 +64,27 @@ public class ApiClassDoc implements ApiDoc {
         apiClass.setQualifiedTypeName(classDoc.qualifiedTypeName());
         //注释下的Tag
         Tag[] tags = classDoc.tags();
+        apiClass.seeCollector(tags);
+
         //所有的注释，包括Tag信息
         Tag[] inlineTags = classDoc.inlineTags();
         List<ApiComment> apiComments = ApiComment.parseApiComments(inlineTags);
         apiClass.setApiComments(apiComments);
         for (Tag tag : tags) {
-            TagType tagType = TagType.getTag(tag.kind());
-            ApiClassDoc.apiClassStriving(apiClass, tagType, tag);
+            ApiClassDoc.apiClassStriving(apiClass, tag);
         }
+
         return apiClass;
     }
 
-    private static void apiClassStriving(ApiClassDoc apiClass, TagType tagType, Tag tag) {
+    private static void apiClassStriving(ApiClassDoc apiClass, Tag tag) {
+        if (tag == null) {
+            return;
+        }
+        TagType tagType = TagType.getTag(tag.kind());
+        if (tagType == null) {
+            return;
+        }
         //标准JAVADOC类注释包括
         //@author 作者标识
         //@version 版本号
@@ -96,8 +101,6 @@ public class ApiClassDoc implements ApiDoc {
                 break;
             case Deprecated:
                 apiClass.setDeprecated(true);
-                break;
-            case See:
                 break;
             case Since:
                 apiClass.setSince(tag.text());

@@ -23,6 +23,7 @@ public class ApiDocParser {
 
     protected Apis doParse(List<ClassDoc> classDocs) {
         List<ApiClassDoc> apiClasses = new ArrayList<>();
+        List<SeeTag> apiSeeClasses = new ArrayList<>();
         ClassDocCollector classDocCollector = builder.getClassDocCollector();
         ClassDocFilter classDocFilter = builder.getClassDocFilter();
         MethodDocFilter methodDocFilter = builder.getMethodDocFilter();
@@ -40,6 +41,11 @@ public class ApiDocParser {
                 continue;
             }
 
+            List<SeeTag> sees = apiClass.getSees();
+            if (sees != null) {
+                apiSeeClasses.addAll(sees);
+            }
+
             List<ApiMethodDoc> apiMethods = ApiMethodDoc.parseApiMethods(classDoc);
 
             if (apiMethods != null && apiMethods.size() > 0) {
@@ -54,20 +60,25 @@ public class ApiDocParser {
                 }
 
                 if (paramDocFilter != null) {
-                    Iterator<ApiMethodDoc> iterator = apiMethods.iterator();
-                    for (; iterator.hasNext(); ) {
-                        ApiMethodDoc apiMethodDoc = iterator.next();
+                    for (ApiMethodDoc apiMethodDoc : apiMethods) {
                         List<ApiParamDoc> apiParamDocs = apiMethodDoc.getApiParamDocs();
                         if (apiParamDocs == null || apiParamDocs.isEmpty()) {
                             continue;
                         }
-                        Iterator<ApiParamDoc> paramDocIterator = apiParamDocs.iterator();
-                        for (; paramDocIterator.hasNext(); ) {
-                            ApiParamDoc apiParamDoc = paramDocIterator.next();
+                        Iterator<ApiParamDoc> iterator = apiParamDocs.iterator();
+                        for (; iterator.hasNext(); ) {
+                            ApiParamDoc apiParamDoc = iterator.next();
                             if (paramDocFilter.filter(apiParamDoc, apiParamDoc.getParamTag())) {
-                                apiParamDocs.remove(apiParamDoc);
+                                iterator.remove();
                             }
                         }
+                    }
+                }
+
+                for (ApiMethodDoc apiMethod : apiMethods) {
+                    sees = apiMethod.getSees();
+                    if (sees != null) {
+                        apiSeeClasses.addAll(sees);
                     }
                 }
             }
@@ -75,6 +86,25 @@ public class ApiDocParser {
             apiClasses.add(apiClass);
         }
         Apis apis = new Apis();
+        if (!apiSeeClasses.isEmpty()) {
+            List<ApiClassDoc> seeClasses = new ArrayList<>();
+            seeLoop:
+            for (SeeTag see : apiSeeClasses) {
+                ClassDoc classDoc = see.referencedClass();
+                if (classDoc == null) {
+                    continue;
+                }
+                String name = classDoc.qualifiedTypeName();
+                for (ApiClassDoc apiClass : apiClasses) {
+                    if (apiClass.getQualifiedTypeName().equals(name)) {
+                        continue seeLoop;
+                    }
+                }
+                ApiClassDoc apiClassDoc = ApiClassDoc.parseApiClass(classDoc);
+                seeClasses.add(apiClassDoc);
+            }
+            apis.setApiSessClasses(seeClasses);
+        }
         apis.setApiClasses(apiClasses);
         return apis;
     }

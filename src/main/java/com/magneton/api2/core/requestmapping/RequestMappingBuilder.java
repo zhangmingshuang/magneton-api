@@ -10,11 +10,11 @@ import com.sun.javadoc.MethodDoc;
  */
 public interface RequestMappingBuilder extends Spi {
 
-    String getRequestMapping(ClassDoc classDoc);
+    String[] getRequestMapping(ClassDoc classDoc);
 
     String getRequestMethod(ClassDoc classDoc);
 
     String getRequestMethod(MethodDoc methodDoc);
 
-    String getRequestMapping(MethodDoc methodDoc);
+    String[] getRequestMapping(MethodDoc methodDoc);
 }

@@ -6,6 +6,7 @@ import com.sun.javadoc.ParamTag;
 import com.sun.javadoc.SeeTag;
 import com.sun.javadoc.Tag;
 import com.sun.tools.javac.tree.JCTree;
+import java.util.ArrayList;
 import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,7 +21,7 @@ import java.util.List;
 @Setter
 @Getter
 @ToString
-public class ApiParamDoc implements ApiDoc {
+public class ApiParamDoc extends ApiSeeCollectorDoc {
 
     private ParamTag paramTag;
 
@@ -35,7 +36,7 @@ public class ApiParamDoc implements ApiDoc {
      * 一个Param参数，如果在参数注释中注解了@link关联对象，并且其关联对象是参数自身
      * 则会解析该对象所有的字段属性
      */
-    private List<ApiFieldDoc> link;
+    private List<ApiFieldDoc> links;
 
     /**
      * 解析API方法参数
@@ -52,7 +53,7 @@ public class ApiParamDoc implements ApiDoc {
 
         //方法参数中对象关联属性
         //作用条件：@param name 注释中，存在注释@link.并且link的对象类型与param中的类型一致
-        List<ApiFieldDoc> link = null;
+        List<ApiFieldDoc> links = null;
         String typeName = null;
 
         args:
@@ -81,7 +82,7 @@ public class ApiParamDoc implements ApiDoc {
                 if (!typeName.equals(type)) {
                     continue;
                 }
-                link = ApiFieldDoc.parseApiFields(linkClass);
+                links = ApiFieldDoc.parseApiFields(linkClass);
                 break args;
             }
         }
@@ -89,8 +90,20 @@ public class ApiParamDoc implements ApiDoc {
         apiParamDoc.setParamTag(paramTag);
         apiParamDoc.setName(paramName);
         apiParamDoc.setTypeName(typeName);
-        apiParamDoc.setLink(link);
+        apiParamDoc.setLinks(links);
         apiParamDoc.setApiComments(ApiComment.parseApiComments(paramTag.inlineTags()));
+
+        if (links != null) {
+            for (ApiFieldDoc apiFieldDoc : links) {
+                apiParamDoc.addSees(apiFieldDoc.getSees());
+            }
+        }
+
+        Tag[] tags = paramTag.inlineTags();
+        apiParamDoc.seeCollector(tags);
+
         return apiParamDoc;
     }
+
+
 }

@@ -10,32 +10,37 @@ import com.sun.javadoc.MethodDoc;
  */
 
 public class SpringRequestMappingBuilder implements RequestMappingBuilder {
+
     @Override
     public String name() {
         return "org.springframework.web.bind.annotation.RequestMapping";
     }
 
     @Override
-    public String getRequestMapping(ClassDoc classDoc) {
-        RequestMapping requestMapping = RequestMappingUtil.parseServletMapping(classDoc.annotations());
-        return requestMapping.getPath()[0];
+    public String[] getRequestMapping(ClassDoc classDoc) {
+        RequestMapping requestMapping
+            = RequestMappingUtil.parseServletMapping(classDoc.annotations());
+        return requestMapping.getPath();
     }
 
     @Override
     public String getRequestMethod(ClassDoc classDoc) {
-        RequestMapping requestMapping = RequestMappingUtil.parseServletMapping(classDoc.annotations());
+        RequestMapping requestMapping
+            = RequestMappingUtil.parseServletMapping(classDoc.annotations());
         return requestMapping.getMethod()[0];
     }
 
     @Override
-    public String getRequestMapping(MethodDoc methodDoc) {
-        RequestMapping requestMapping = RequestMappingUtil.parseServletMapping(methodDoc.annotations());
-        return requestMapping.getPath()[0];
+    public String[] getRequestMapping(MethodDoc methodDoc) {
+        RequestMapping requestMapping
+            = RequestMappingUtil.parseServletMapping(methodDoc.annotations());
+        return requestMapping.getPath();
     }
 
     @Override
     public String getRequestMethod(MethodDoc methodDoc) {
-        RequestMapping requestMapping = RequestMappingUtil.parseServletMapping(methodDoc.annotations());
+        RequestMapping requestMapping = RequestMappingUtil
+            .parseServletMapping(methodDoc.annotations());
         return requestMapping.getMethod()[0];
     }
 }

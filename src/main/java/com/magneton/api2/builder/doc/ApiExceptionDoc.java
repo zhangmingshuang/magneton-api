@@ -11,7 +11,8 @@ import java.util.List;
  */
 @Setter
 @Getter
-public class ApiExceptionDoc implements ApiDoc{
+public class ApiExceptionDoc extends ApiDoc {
+
     private String name;
     private List<ApiComment> apiComments;
 }

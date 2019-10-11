@@ -1,6 +1,7 @@
 package com.magneton.api2.builder.doc;
 
 import com.magneton.api2.util.ApiTagUtil;
+import com.sun.javadoc.SeeTag;
 import com.sun.javadoc.Tag;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +18,7 @@ import lombok.ToString;
 @Setter
 @Getter
 @ToString
-public class ApiComment implements ApiDoc {
+public class ApiComment extends ApiSeeCollectorDoc {
 
     /**
      * 是否一个连接
@@ -33,15 +34,23 @@ public class ApiComment implements ApiDoc {
      */
     private Tag tag;
 
+
     public static List<ApiComment> parseApiComments(Tag[] inlineTags) {
         List<ApiComment> apiComments = new ArrayList<>();
+
         for (Tag inlineTag : inlineTags) {
             ApiComment apiComment = new ApiComment();
             apiComment.setLink(ApiTagUtil.isSee(inlineTag));
             apiComment.setText(inlineTag.text());
             apiComment.setTag(inlineTag);
+
+            if (apiComment.isLink()) {
+                apiComment.addSee((SeeTag) inlineTag);
+            }
+
             apiComments.add(apiComment);
         }
+
         return apiComments;
     }
 }
