@@ -13,6 +13,7 @@ import lombok.Setter;
 @Setter
 @Getter
 public class RequestMapping {
+
     /**
      * 请求的实际地址，如：/a/b
      */

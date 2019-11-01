@@ -61,6 +61,7 @@ public class ApiBootstrap {
 
         List<String> paramTypeFilters = commonApiCommander.getParamTypeFilters();
         ApiDocParser apiDocParser = new ApiDocParserBuilder()
+            .ignore(commonApiCommander.getParamIgnore())
             .paramDocFilter(new ParamFilter(paramTypeFilters))
             .classDocCollector(apiWorker.classDocCollector())
             .build();
@@ -84,7 +85,7 @@ public class ApiBootstrap {
         ApiFileGenerater apiFileGenerater = apiWorker.createGenerateFiles(apis);
         try {
             this.doFileGenerater(commonApiCommander.getOutputFolder(), apiFileGenerater,
-                commonApiCommander.getOutputCharset(), commonApiCommander.isEnv());
+                                 commonApiCommander.getOutputCharset(), commonApiCommander.isEnv());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -160,7 +161,7 @@ public class ApiBootstrap {
         apiFileGenerater.getApiFiles().forEach(file -> {
             try {
                 Files.write(folder.resolve(file.getFileName()),
-                    file.getContent().getBytes(outputCharset));
+                            file.getContent().getBytes(outputCharset));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

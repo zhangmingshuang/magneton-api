@@ -73,7 +73,9 @@ public class RequestMappingUtil {
         for (AnnotationDesc desc : annotations) {
             AnnotationTypeDoc annotationTypeDoc = desc.annotationType();
             String name = annotationTypeDoc.name();
-            if (!"RequestMapping".equals(name)) {
+            if (!"RequestMapping".equals(name)
+                && !"PostMapping".equals(name)
+                && !"GetMapping".equals(name)) {
                 continue;
             }
             RequestMapping requestMapping = new RequestMapping();

@@ -1,5 +1,6 @@
 package com.magneton.api2.builder.doc;
 
+import java.util.List;
 import lombok.Getter;
 
 /**
@@ -12,10 +13,16 @@ import lombok.Getter;
 @Getter
 public class ApiDocParserBuilder {
 
+    private List<String> ignore;
     private ClassDocCollector classDocCollector;
     private ClassDocFilter classDocFilter;
     private MethodDocFilter methodDocFilter;
     private ParamDocFilter paramDocFilter;
+
+    public ApiDocParserBuilder ignore(List<String> ignore) {
+        this.ignore = ignore;
+        return this;
+    }
 
     public ApiDocParserBuilder paramDocFilter(ParamDocFilter paramDocFilter) {
         this.paramDocFilter = paramDocFilter;

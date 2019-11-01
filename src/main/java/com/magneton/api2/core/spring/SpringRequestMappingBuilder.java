@@ -12,8 +12,12 @@ import com.sun.javadoc.MethodDoc;
 public class SpringRequestMappingBuilder implements RequestMappingBuilder {
 
     @Override
-    public String name() {
-        return "org.springframework.web.bind.annotation.RequestMapping";
+    public String[] name() {
+        return new String[]{
+            "org.springframework.web.bind.annotation.RequestMapping",
+            "org.springframework.web.bind.annotation.PostMapping",
+            "org.springframework.web.bind.annotation.GetMapping",
+        };
     }
 
     @Override

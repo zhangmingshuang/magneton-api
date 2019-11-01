@@ -7,5 +7,6 @@ package com.magneton.api2.spi;
  * @since 2019/9/12
  */
 public interface Spi {
-    String name();
+
+    String[] name();
 }

@@ -14,9 +14,11 @@ import com.magneton.api2.core.requestmapping.RequestMappingBuilderChain;
 import com.magneton.api2.core.ApiWorker;
 import com.magneton.api2.scanner.FileCollector;
 import com.magneton.api2.util.ApiLog;
+import com.magneton.api2.util.ApiTagUtil;
 import com.magneton.service.core.util.StringUtil;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.MethodDoc;
+import com.sun.javadoc.SeeTag;
 import com.sun.javadoc.Tag;
 import com.sun.tools.javadoc.ClassDocImpl;
 import com.sun.tools.javadoc.MethodDocImpl;
@@ -32,7 +34,7 @@ import java.util.*;
  */
 public class ApiDocApiWorker implements ApiWorker {
 
-    public static final String NAME = "apidoc";
+    public static final String[] NAME = {"apidoc"};
 
     private ApiDocCommander apiDocCommander = new ApiDocCommander();
     private ApiDocHeaderCollector apiDocHeaderCollector;
@@ -232,13 +234,9 @@ public class ApiDocApiWorker implements ApiWorker {
                         String controller, method;
                         if (href.startsWith("#")) {
                             //没有控制器
-                            if (ClassDocImpl.class.isAssignableFrom(apiComment.getTag().holder().getClass())) {
-                                ClassDoc classDoc = ((ClassDocImpl) (apiComment.getTag().holder())).containingClass();
-                                if (classDoc == null) {
-                                    controller = "#";
-                                } else {
-                                    controller = classDoc.name();
-                                }
+                            if (ApiTagUtil.isSee(apiComment.getTag())
+                                && ((SeeTag) apiComment.getTag()).referencedClass() != null) {
+                                controller = ((SeeTag) apiComment.getTag()).referencedClass().name();
                             } else {
                                 controller = "#";
                             }
@@ -278,6 +276,9 @@ public class ApiDocApiWorker implements ApiWorker {
 
         List<ApiClassDoc> apiClasses = apis.getApiClasses();
         for (ApiClassDoc apiClass : apiClasses) {
+            if (apiClass.getSimpleName().equals("SmartPaymentController")) {
+                System.out.println("11");
+            }
             List<ApiMethodDoc> apiMethodDocs = apiClass.getApiMethodDocs();
             if (apiMethodDocs == null || apiMethodDocs.size() < 1) {
                 continue;
@@ -347,8 +348,8 @@ public class ApiDocApiWorker implements ApiWorker {
                         param.put("field", apiFieldDoc.getName());
                     }
                     param.put("description",
-                        this.parseApiDocComment(
-                            ApiComment.parseApiComments(apiFieldDoc.getFieldDoc().inlineTags())));
+                              this.parseApiDocComment(
+                                  ApiComment.parseApiComments(apiFieldDoc.getFieldDoc().inlineTags())));
                     parameters.add(param);
                 }
             }
@@ -395,11 +396,11 @@ public class ApiDocApiWorker implements ApiWorker {
                 param.put("group", "Parameter");
                 param.put("type", "");
                 param.put("field",
-                    apiFieldDoc.getName() + " = " + apiFieldDoc.getFieldDoc()
-                                                               .constantValueExpression());
+                          apiFieldDoc.getName() + " = " + apiFieldDoc.getFieldDoc()
+                                                                     .constantValueExpression());
                 param.put("description",
-                    this.parseApiDocComment(
-                        ApiComment.parseApiComments(apiFieldDoc.getFieldDoc().inlineTags())));
+                          this.parseApiDocComment(
+                              ApiComment.parseApiComments(apiFieldDoc.getFieldDoc().inlineTags())));
                 parameters.add(param);
             }
         }
@@ -455,6 +456,9 @@ public class ApiDocApiWorker implements ApiWorker {
         }
         JSONArray parameters = new JSONArray();
         for (ApiParamDoc apiParamDoc : apiParamDocs) {
+//            if(apiParamDoc.getTypeName().equals("com.sgcc.wx.service.entity.query.AccountPasswordChangeQuery")){
+//                System.out.println("1");
+//            }
             List<ApiFieldDoc> link = apiParamDoc.getLinks();
             if (link != null && link.size() > 0) {
                 for (ApiFieldDoc apiFieldDoc : link) {
@@ -485,7 +489,7 @@ public class ApiDocApiWorker implements ApiWorker {
     }
 
     @Override
-    public String name() {
+    public String[] name() {
         return NAME;
     }
 

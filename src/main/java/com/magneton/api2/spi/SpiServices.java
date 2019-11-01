@@ -40,7 +40,10 @@ public final class SpiServices {
             if (LazySpi.class.isAssignableFrom(next.getClass())) {
                 throw new RuntimeException("lazyspi can't in service spi.");
             }
-            map.put(((Spi) next).name(), next);
+            String[] names = ((Spi) next).name();
+            for (String name : names) {
+                map.put(name, next);
+            }
         }
         return map;
     }

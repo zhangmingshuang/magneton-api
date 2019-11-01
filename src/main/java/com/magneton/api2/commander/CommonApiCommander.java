@@ -50,6 +50,15 @@ public class CommonApiCommander implements ApiCommander {
         }
     };
 
+    @Parameter(names = {"-ignore"},
+        description = "注释指定过滤文本，如果注释文本首行或者Param注释中包含文本（忽略大小写），则过滤该方法或参数",
+        variableArity = true)
+    private List<String> paramIgnore = new ArrayList(1) {
+        {
+            this.add("[Ignore]");
+        }
+    };
+
     @Parameter(names = {"-o", "-output"}, description = "API文档输出目录")
     private String outputFolder = System.getProperty("user.dir");
 

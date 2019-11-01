@@ -1,5 +1,6 @@
 package com.magneton.api2.builder.doc;
 
+import com.sun.javadoc.AnnotationDesc;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.ParamTag;
@@ -42,7 +43,7 @@ public class ApiParamDoc extends ApiSeeCollectorDoc {
      * 解析API方法参数
      *
      * @param apiMethodDoc ApiMethod
-     * @param paramTag ParamTag
+     * @param paramTag     ParamTag
      * @param paramFilters 参数类型过滤，如HttpSerlvetRequest
      * @return ApiParam
      */
@@ -66,6 +67,9 @@ public class ApiParamDoc extends ApiSeeCollectorDoc {
             if (vartype.type.isPrimitive()) {
                 continue;
             }
+//            if(typeName.equals("com.sgcc.wx.service.entity.query.AccountPasswordChangeQuery")){
+//                System.out.println("1");
+//            }
             //如果要解析成附加LINK属性对象
             Tag[] paramInlineTags = paramTag.inlineTags();
             for (Tag paramInlineTag : paramInlineTags) {
@@ -78,7 +82,9 @@ public class ApiParamDoc extends ApiSeeCollectorDoc {
                 if (linkClass == null) {
                     continue;
                 }
-                String type = linkClass.typeName();
+                AnnotationDesc[] annotations = linkClass.annotations();
+
+                String type = linkClass.qualifiedTypeName();
                 if (!typeName.equals(type)) {
                     continue;
                 }

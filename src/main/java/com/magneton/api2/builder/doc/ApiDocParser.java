@@ -21,6 +21,28 @@ public class ApiDocParser {
         return this.doParse(classDocs);
     }
 
+
+    private boolean isIgnore(List<ApiComment> apiComments) {
+        List<String> ignore = builder.getIgnore();
+        if (ignore == null || ignore.size() < 1) {
+            return false;
+        }
+        for (String flag : ignore) {
+            if (apiComments == null || apiComments.size() < 1) {
+                continue;
+            }
+            ApiComment apiComment = apiComments.get(0);
+            if (apiComment == null) {
+                continue;
+            }
+            String text = apiComment.getText();
+            if (text != null && text.toLowerCase().indexOf(flag.toLowerCase()) != -1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     protected Apis doParse(List<ClassDoc> classDocs) {
         List<ApiClassDoc> apiClasses = new ArrayList<>();
         List<SeeTag> apiSeeClasses = new ArrayList<>();
@@ -28,6 +50,8 @@ public class ApiDocParser {
         ClassDocFilter classDocFilter = builder.getClassDocFilter();
         MethodDocFilter methodDocFilter = builder.getMethodDocFilter();
         ParamDocFilter paramDocFilter = builder.getParamDocFilter();
+        List<String> ignore = builder.getIgnore();
+
         for (ClassDoc classDoc : classDocs) {
             ApiClassDoc apiClass = ApiClassDoc.parseApiClass(classDoc);
             if (apiClass == null) {
@@ -49,27 +73,48 @@ public class ApiDocParser {
             List<ApiMethodDoc> apiMethods = ApiMethodDoc.parseApiMethods(classDoc);
 
             if (apiMethods != null && apiMethods.size() > 0) {
-                if (methodDocFilter != null) {
-                    Iterator<ApiMethodDoc> iterator = apiMethods.iterator();
-                    for (; iterator.hasNext(); ) {
-                        ApiMethodDoc apiMethodDoc = iterator.next();
-                        if (methodDocFilter.filter(apiMethodDoc, apiMethodDoc.getMethodDoc())) {
-                            apiMethods.remove(apiMethodDoc);
-                        }
+                Iterator<ApiMethodDoc> methodDocIterator = apiMethods.iterator();
+                for (; methodDocIterator.hasNext(); ) {
+                    ApiMethodDoc apiMethodDoc = methodDocIterator.next();
+                    if (methodDocFilter != null
+                        && methodDocFilter.filter(apiMethodDoc, apiMethodDoc.getMethodDoc())) {
+                        methodDocIterator.remove();
+                        continue;
                     }
-                }
+                    if (isIgnore(apiMethodDoc.getApiComments())) {
+                        methodDocIterator.remove();
+                        continue;
+                    }
+                }//end method iterator
 
-                if (paramDocFilter != null) {
-                    for (ApiMethodDoc apiMethodDoc : apiMethods) {
-                        List<ApiParamDoc> apiParamDocs = apiMethodDoc.getApiParamDocs();
-                        if (apiParamDocs == null || apiParamDocs.isEmpty()) {
+                for (ApiMethodDoc apiMethodDoc : apiMethods) {
+                    List<ApiParamDoc> apiParamDocs = apiMethodDoc.getApiParamDocs();
+                    if (apiParamDocs == null || apiParamDocs.isEmpty()) {
+                        continue;
+                    }
+                    Iterator<ApiParamDoc> iterator = apiParamDocs.iterator();
+                    for (; iterator.hasNext(); ) {
+                        ApiParamDoc apiParamDoc = iterator.next();
+                        if (paramDocFilter != null
+                            && paramDocFilter.filter(apiParamDoc, apiParamDoc.getParamTag())) {
+                            iterator.remove();
                             continue;
                         }
-                        Iterator<ApiParamDoc> iterator = apiParamDocs.iterator();
-                        for (; iterator.hasNext(); ) {
-                            ApiParamDoc apiParamDoc = iterator.next();
-                            if (paramDocFilter.filter(apiParamDoc, apiParamDoc.getParamTag())) {
-                                iterator.remove();
+                        if (isIgnore(apiParamDoc.getApiComments())) {
+                            iterator.remove();
+                            continue;
+                        }
+
+                        List<ApiFieldDoc> links = apiParamDoc.getLinks();
+                        if (links != null) {
+                            Iterator<ApiFieldDoc> apiFieldDocIterator = links.iterator();
+                            for (; apiFieldDocIterator.hasNext(); ) {
+                                ApiFieldDoc apiFieldDoc = apiFieldDocIterator.next();
+                                if (isIgnore(apiFieldDoc.getApiComments())) {
+                                    apiFieldDocIterator.remove();
+                                    continue;
+                                }
+
                             }
                         }
                     }
@@ -85,6 +130,7 @@ public class ApiDocParser {
             apiClass.setApiMethodDocs(apiMethods);
             apiClasses.add(apiClass);
         }
+
         Apis apis = new Apis();
         if (!apiSeeClasses.isEmpty()) {
             List<ApiClassDoc> seeClasses = new ArrayList<>();
