@@ -1,51 +1,62 @@
 # Magneton-Api
 根据JAVADOC文档生成对应的API文档
 
-##模板支持
-- API-DOC
 
-##用法
-java -jar magneton-api.jar -oc utf-8 -se ${project}
+##示例用法
+```
+ -oc utf-8 -s 要生成的API项目目录
+ -se 扩展目录，多模块时的Class依赖目录
+ -sf .*com\\project\\controller\\.*Controller.java #指定扫描文件过滤
+ -o API文档输出目录
+ -ignore [attribute] #指定注释中包含[attribute]的注释方法或字段过滤
+ -ignore [ignore] #指定注释中包含[attribute]的注释方法或字段过滤
+ apidoc #指定API生成模板
+  # 模板子命令
+  -h api.md #指定ApiDoc的API指南文件
+  -e com.sgcc.wx.common.error.ErrorCode #指定全局错误定义代码文件
+```
 
-##参数说明
-  - `-otype/-outputType` 输出类型，默认`apidoc`，当前只支持`apidoc`
-  - `-f` 配置读取的API文件格式，默认`*Controller.java`
-  - `-s/-scan` 配置搜索目录，默认为运行时目录
-  - `-se` 配置搜索关联的目录，用来关联类引用。 如API扫描目录在`projectA`而引用的类在`projectB`。
-  则使用 `-s projectA -se projectB`就可以进行关联引用。 支持多目录配置，以`,`分隔。
-  目录的配置支持使用`${project}`来表示为当前目录的根目录。
-  如:`${project}/test`表示运行时目录下的`test`目录。
-  - `-o/-output` 配置输出目录，默认为运行目录下+模板类型。如：`${project}/api-doc`
-  - `-oc` 配置输出文件编码
-  - `-sc` 配置读取文件编码
-  - `-pf/-param-filter` 以添加的方式配置解析时参数类型过滤，如：`HttpServletRequest`。多类型以,分隔。
-    默认过滤`HttpServletRequest&HttpServletResponse`。
-    
-    示例：`-pf Map,list`。不区分大小写。
-    
-  - `-pfn/-param-filter-new` 强制过滤过滤为参数`-pf/-param-filter`指定的过滤
-  - `-reverse` 指定一个反向代理服务，将根据服务生成对应配置文件。支持`nginx`。
-      同时，可以指定生成的端口。如`nginx:881`。
+##主参数说明
+   - -env
+      强制刷新API生成目录文档
+      Default: false
+   - -h, -help, -?
+      帮助文档
+   - -ignore
+      注释指定过滤文本，如果注释文本首行或者Param注释中包含文本（忽略大小写），则过滤该方法或参数
+      Default: [[Ignore]]
+   - -o, -output
+      API文档输出目录
+      Default: E:\magneton-projects\magneton-api
+   - -oc, -output-charset
+      配置输出文件编码
+      Default: utf-8
+   - -ptf, -param-type-filter
+      指定过滤参数类型
+      Default: [HttpServletRequest, HttpServletResponse]
+   - -s, -scan
+      配置API文件目录，默认为当前目录
+      Default: [E:\magneton-projects\magneton-api]
+   - -se, -scan-extend
+      配置扩展关联目录，可以用来关联类引用
+      Default: []
+   - -sef, -scan-extend-file-filter
+      配置扩展关联目录文件过滤规则
+      Default: .*.
+   - -sf, -scan-file-filter
+      配置要API文件过滤规则
+      Default: .*Controller\.java
+   - -sc, -source-charset
+      配置解析文件编码
+      Default: utf-8
       
-      生成内容如下：
-      ```conf
-      server {
-        listen 811;
-        server_name locatlhost;
-        location /wx-open/ { 
-            default_type text/html;
-            alias /wx-open/api-doc/;
-            index index.html;
-        }
-      }
-      ```
-
-##Bug
-- 跨模块配置的api.md会多次注入
-- ${project}是以user.dir获取的。但是不会获取到运行目录。
-`java -jar ../../magneton-api.jar \
- -s "${project}/src" \
- -oc utf-8 -se "${project}/../../" \
- -f ".*com\\\\sgcc\\\\wx\\\\inletting\\\\controller\\\\api.*Controller.java" \
- -e "com.sgcc.wx.common.error.ErrorCode"
-`
+## 子参数说明
+  `Example: java -jar Magneton-api.jar apidoc`
+#### apidoc [options]
+  ```
+  Options:
+      -e, -error
+        错定全局错误码类名
+      -h, -header
+        指定API头，支持MD格式
+  ```
