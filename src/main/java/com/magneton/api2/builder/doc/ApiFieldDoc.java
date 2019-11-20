@@ -42,6 +42,9 @@ public class ApiFieldDoc extends ApiSeeCollectorDoc {
         }
         List<ApiFieldDoc> apiFieldDocs = new ArrayList<>(fields.length);
         for (FieldDoc field : fields) {
+            if (field.isTransient()) {
+                continue;
+            }
             ApiFieldDoc apiFieldDoc = new ApiFieldDoc();
             apiFieldDoc.setFieldDoc(field);
             apiFieldDoc.setTypeName(field.type().typeName().toString());

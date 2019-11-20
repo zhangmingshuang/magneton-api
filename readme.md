@@ -1,7 +1,6 @@
 # Magneton-Api
 根据JAVADOC文档生成对应的API文档
 
-
 ##示例用法
 ```
  -oc utf-8 -s 要生成的API项目目录

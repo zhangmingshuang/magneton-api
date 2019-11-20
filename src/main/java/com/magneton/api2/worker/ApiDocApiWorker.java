@@ -23,6 +23,7 @@ import com.sun.javadoc.Tag;
 import com.sun.tools.javadoc.ClassDocImpl;
 import com.sun.tools.javadoc.MethodDocImpl;
 
+import java.lang.reflect.Modifier;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -322,6 +323,15 @@ public class ApiDocApiWorker implements ApiWorker {
         for (ApiClassDoc apiClassDoc : apiSessClasses) {
             ClassDoc classDoc = apiClassDoc.getClassDoc();
             String name = apiClassDoc.getSimpleName();
+
+            if ("CertificateTypeEnum".equals(name)) {
+                System.out.println("1");
+            }
+            if (classDoc.superclassType().typeName().toLowerCase().equals("enum")) {
+                //一个枚举
+
+            }
+
             List<ApiFieldDoc> apiFieldDocs = ApiFieldDoc.parseApiFields(classDoc);
 
             JSONObject methodApiDoc = new JSONObject();
