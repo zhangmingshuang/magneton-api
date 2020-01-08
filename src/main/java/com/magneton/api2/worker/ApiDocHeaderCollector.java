@@ -1,9 +1,8 @@
 package com.magneton.api2.worker;
 
 import com.google.common.base.Joiner;
-import com.magneton.api2.core.ApiConstant;
 import com.magneton.api2.scanner.FileCollector;
-import com.magneton.service.core.util.StringUtil;
+import com.magneton.api2.util.StringUtil;
 import com.vladsch.flexmark.ext.tables.TablesExtension;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
@@ -21,26 +20,30 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
+ * Apidoc的API文档头文件采集器
+ *
+ * 用来采集{}
+ *
  * @author zhangmingshuang
  * @since 2019/9/28
  */
 public class ApiDocHeaderCollector implements FileCollector {
 
-    private ApiDocCommander apiDocCommander;
+    private ApiDocApiCommand apiDocApiCommander;
     private Path file;
 
-    public ApiDocHeaderCollector(ApiDocCommander apiDocCommander) {
-        this.apiDocCommander = apiDocCommander;
+    public ApiDocHeaderCollector(ApiDocApiCommand apiDocApiCommander) {
+        this.apiDocApiCommander = apiDocApiCommander;
     }
 
     @Override
     public Pattern[] patterns() {
-        String header = apiDocCommander.getHeader();
+        String header = apiDocApiCommander.getHeader();
         if (StringUtil.isEmpty(header)) {
             return null;
         }
         return new Pattern[]{
-            Pattern.compile(apiDocCommander.getHeader())
+            Pattern.compile(apiDocApiCommander.getHeader())
         };
     }
 

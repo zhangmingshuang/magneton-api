@@ -1,10 +1,8 @@
-package com.magneton.api2.commander;
+package com.magneton.api2.command;
 
 import com.beust.jcommander.Parameter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import lombok.Getter;
 
 /**
@@ -14,7 +12,7 @@ import lombok.Getter;
  * @since 2019/9/28
  */
 @Getter
-public class CommonApiCommander implements ApiCommander {
+public class CommonApiCommand implements ApiCommand {
 
     @Parameter(names = {"-h", "-help", "-?"}, description = "帮助文档", help = true)
     private boolean help;

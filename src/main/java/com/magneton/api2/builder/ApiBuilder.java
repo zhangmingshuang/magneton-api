@@ -1,9 +1,8 @@
 package com.magneton.api2.builder;
 
 import com.magneton.api2.builder.doc.ApiDocParser;
-import com.magneton.api2.builder.doc.ApiDocParserBuilder;
 import com.magneton.api2.scanner.HFiles;
-import com.magneton.service.core.util.StringUtil;
+import com.magneton.api2.util.StringUtil;
 import java.util.regex.Pattern;
 import lombok.Getter;
 

@@ -1,11 +1,6 @@
 package com.magneton.api2.util;
 
-import com.sun.javadoc.SeeTag;
 import com.sun.javadoc.Tag;
-import org.apache.commons.lang3.ArrayUtils;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author zhangmingshuang

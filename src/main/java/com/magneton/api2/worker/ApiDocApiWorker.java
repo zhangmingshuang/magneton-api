@@ -3,8 +3,8 @@ package com.magneton.api2.worker;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.magneton.api2.builder.ApiDoclet;
-import com.magneton.api2.commander.ApiCommander;
-import com.magneton.api2.commander.CommonApiCommander;
+import com.magneton.api2.command.ApiCommand;
+import com.magneton.api2.command.CommonApiCommand;
 import com.magneton.api2.core.ApiConstant;
 import com.magneton.api2.generater.ApiFile;
 import com.magneton.api2.generater.ApiFileGenerater;
@@ -15,15 +15,11 @@ import com.magneton.api2.core.ApiWorker;
 import com.magneton.api2.scanner.FileCollector;
 import com.magneton.api2.util.ApiLog;
 import com.magneton.api2.util.ApiTagUtil;
-import com.magneton.service.core.util.StringUtil;
+import com.magneton.api2.util.StringUtil;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.SeeTag;
 import com.sun.javadoc.Tag;
-import com.sun.tools.javadoc.ClassDocImpl;
-import com.sun.tools.javadoc.MethodDocImpl;
-
-import java.lang.reflect.Modifier;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -36,26 +32,31 @@ import java.util.*;
 public class ApiDocApiWorker implements ApiWorker {
 
     public static final String[] NAME = {"apidoc"};
-
-    private ApiDocCommander apiDocCommander = new ApiDocCommander();
+    /**
+     * 独有参数配置
+     */
+    private ApiDocApiCommand apiDocApiCommander = new ApiDocApiCommand();
+    /**
+     *
+     */
     private ApiDocHeaderCollector apiDocHeaderCollector;
-    private CommonApiCommander commonApiCommander;
+    private CommonApiCommand commonApiCommander;
 
     @Override
-    public ApiCommander apiCommander() {
-        return apiDocCommander;
+    public ApiCommand apiWorkCommand() {
+        return apiDocApiCommander;
     }
 
     @Override
     public FileCollector[] fileCollector() {
-        this.apiDocHeaderCollector = new ApiDocHeaderCollector(this.apiDocCommander);
+        this.apiDocHeaderCollector = new ApiDocHeaderCollector(this.apiDocApiCommander);
         return new FileCollector[]{
             apiDocHeaderCollector
         };
     }
 
     @Override
-    public void afterApiCommanderSet(CommonApiCommander commonApiCommander) {
+    public void afterApiCommanderSet(CommonApiCommand commonApiCommander) {
         this.commonApiCommander = commonApiCommander;
     }
 
@@ -269,7 +270,7 @@ public class ApiDocApiWorker implements ApiWorker {
 
         //APIDOC预期读取全局错误描述码
         JSONObject errorCodeMethod =
-            this.parseApiErrorCode(this.apiDocCommander.getErrorClass());
+            this.parseApiErrorCode(this.apiDocApiCommander.getErrorClass());
         if (errorCodeMethod != null) {
             apiDocOrders.add(errorCodeMethod.get("group"));
             apiDocs.add(errorCodeMethod);

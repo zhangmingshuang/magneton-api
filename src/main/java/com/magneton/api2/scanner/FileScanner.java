@@ -65,7 +65,7 @@ public class FileScanner implements Scanner {
 
                     if (primary && fileScannerBuilder.getFilter() != null) {
                         Matcher matcher = fileScannerBuilder.getFilter()
-                            .matcher(filePath.toString());
+                                                            .matcher(filePath.toString());
                         if (!matcher.find()) {
                             FileScanner.this.doFilterCollector(primary, filePath);
                             return FileVisitResult.CONTINUE;

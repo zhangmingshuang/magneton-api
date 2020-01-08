@@ -2,22 +2,20 @@ package com.magneton.api2;
 
 import com.magneton.api2.builder.doc.ApiDocParser;
 import com.magneton.api2.builder.doc.ApiDocParserBuilder;
-import com.magneton.api2.builder.doc.ParamDocFilter;
-import com.magneton.api2.commander.CommonApiCommander;
+import com.magneton.api2.command.CommonApiCommand;
 import com.magneton.api2.core.*;
 import com.magneton.api2.builder.Api;
 import com.magneton.api2.builder.doc.Apis;
-import com.magneton.api2.core.ApiForeman;
+import com.magneton.api2.core.ApiForemaner;
 import com.magneton.api2.builder.ApiBuilder;
 import com.magneton.api2.generater.ApiFileGenerater;
 import com.magneton.api2.scanner.FileScannerBuilder;
 import com.magneton.api2.scanner.HFiles;
 import com.magneton.api2.scanner.Scanner;
 import com.magneton.api2.util.ApiLog;
-import com.magneton.service.core.util.StringUtil;
+import com.magneton.api2.util.StringUtil;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -45,31 +43,33 @@ public class ApiBootstrap {
     public void doWork(String[] args) {
         ApiLog.out("=====Magneton ApiClass Builder=======");
 
-        ApiForeman apiForeman = ApiForeman.contactWorker(args);
-        ApiWorker apiWorker = apiForeman.getApiWorker();
-        apiWorker.afterApiCommanderSet(apiForeman.getCommonApiCommander());
+        ApiForemaner apiForemaner = ApiForemaner.contactWorker(args);
 
-        //文件扫描
-        Scanner scanner = this.getFileScanner(apiForeman);
+        Scanner scanner = this.getFileScanner(apiForemaner);
         HFiles hFiles = scanner.search();
         if (hFiles.isEmpty()) {
-            ApiLog.out("no file found.");
+            ApiLog.out("no file found in " + apiForemaner);
             System.exit(0);
+            return;
         }
 
-        CommonApiCommander commonApiCommander = apiForeman.getCommonApiCommander();
+        CommonApiCommand commonApiCommand = apiForemaner.getCommonApiCommand();
 
-        List<String> paramTypeFilters = commonApiCommander.getParamTypeFilters();
+        ApiWorker apiWorker = apiForemaner.getApiWorker();
+        apiWorker.afterApiCommanderSet(commonApiCommand);
+
+        List<String> paramTypeFilters = commonApiCommand.getParamTypeFilters();
         ApiDocParser apiDocParser = new ApiDocParserBuilder()
-            .ignore(commonApiCommander.getParamIgnore())
-            .paramDocFilter(new ParamFilter(paramTypeFilters))
+            .ignore(commonApiCommand.getParamIgnore())
+            .paramDocFilter(new ParamTypeFilter(paramTypeFilters))
             .classDocCollector(apiWorker.classDocCollector())
             .build();
 
-        String scanFilter = commonApiCommander.getScanFileFilter();
+        String scanFilter = commonApiCommand.getScanFileFilter();
+
         Api api = new ApiBuilder()
             .hFiles(hFiles)
-            .charset(commonApiCommander.getSourceCharset())
+            .charset(commonApiCommand.getSourceCharset())
             .filter(StringUtil.isEmpty(scanFilter) ? null : Pattern.compile(scanFilter))
             .apiDocParser(apiDocParser)
             .build();
@@ -84,29 +84,29 @@ public class ApiBootstrap {
 
         ApiFileGenerater apiFileGenerater = apiWorker.createGenerateFiles(apis);
         try {
-            this.doFileGenerater(commonApiCommander.getOutputFolder(), apiFileGenerater,
-                                 commonApiCommander.getOutputCharset(), commonApiCommander.isEnv());
+            this.doFileGenerater(commonApiCommand.getOutputFolder(), apiFileGenerater,
+                                 commonApiCommand.getOutputCharset(), commonApiCommand.isEnv());
         } catch (IOException e) {
             e.printStackTrace();
         }
         System.exit(0);
     }
 
-    private Scanner getFileScanner(ApiForeman apiForeman) {
-        CommonApiCommander commonApiCommander = apiForeman.getCommonApiCommander();
-        String filter = commonApiCommander.getScanFileFilter();
-        Pattern pattern = null;
+    private Scanner getFileScanner(ApiForemaner apiForemaner) {
+        CommonApiCommand commonApiCommand = apiForemaner.getCommonApiCommand();
+        String filter = commonApiCommand.getScanFileFilter();
+        Pattern filterPattern = null;
         if (!StringUtil.isEmpty(filter)) {
-            pattern = Pattern.compile(commonApiCommander.getScanExtFileFilter());
+            filterPattern = Pattern.compile(commonApiCommand.getScanExtFileFilter());
         }
 
-        List<String> scanFolders = commonApiCommander.getScanFolders();
-        List<String> scanExtFolders = commonApiCommander.getScanExtFolders();
+        List<String> scanFolders = commonApiCommand.getScanFolders();
+        List<String> scanExtFolders = commonApiCommand.getScanExtFolders();
 
-        ApiWorker apiWorker = apiForeman.getApiWorker();
+        ApiWorker apiWorker = apiForemaner.getApiWorker();
 
         return new FileScannerBuilder()
-            .filter(pattern)
+            .filter(filterPattern)
             .fileCollector(apiWorker == null ? null : apiWorker.fileCollector())
             .filterCollector(apiWorker == null ? null : apiWorker.filterCollector())
             .primaryPaths(this.getPaths(scanFolders))
@@ -167,30 +167,4 @@ public class ApiBootstrap {
             }
         });
     }
-
-//    private void addFileInclude(Path folder, ApiFileGenerater apiFileGenerater) {
-//        String reverse = ApiConstant.REVERSE_PROXY;
-//        if (reverse != null && !reverse.isEmpty()) {
-//            String[] infos = reverse.split(":");
-//            String name = infos[0];
-//            int port = 881;
-//            if (infos.length > 1) {
-//                try {
-//                    port = Integer.parseInt(infos[1]);
-//                } catch (Throwable e) {
-//                    //Ignore
-//                }
-//            }
-//            ApiReverseProxy apiReverseProxy
-//                = SpiServices.getService(ApiReverseProxy.class, name);
-//            if (apiReverseProxy != null) {
-//                ApiFile proxyFile = apiReverseProxy
-//                    .createApiFile(port, ApiConstant.OUTPUT_FOLDER.getFileName().toString(),
-//                        folder);
-//                if (proxyFile != null) {
-//                    apiFileGenerater.addApiFile(proxyFile);
-//                }
-//            }
-//        }
-//    }
 }
